@@ -298,8 +298,8 @@ config <- list(
   `Model Name` = textInput('%Question.Model Name%'),
   `Use Weights` = checkboxInput('%Question.Use Weights%' , FALSE),
   `Weight Vec` = dropdownInput('%Question.Weight Vec%'),
-  `X Vars` = listInput('%Question.X Vars%', c('gre', 'gpa', 'rank')),
-  `Y Var` = dropdownInput('%Question.Y Var%', 'admit'),
+  `X Vars` = listInput('%Question.X Vars%', c('AveDonAmt', 'DonPerYear', 'LastDonAmt', 'Region')),
+  `Y Var` = dropdownInput('%Question.Y Var%', 'MonthGive'),
   regularization = checkboxInput('%Question.regularization%', FALSE),
   alpha = numericInput('%Question.alpha%', .5),
   lambda_1se = radioInput('%Question.lambda.1se%', TRUE),
@@ -341,6 +341,33 @@ http://downloads.alteryx.com/Latest_RInstaller.htm</AnnotationText>
           <DefaultAnnotationText />
           <Left value="False" />
         </Annotation>
+        <MetaInfo connection="Output1">
+          <RecordInfo>
+            <Field name="Coefficients" size="1073741823" source="R-DATA:" type="V_WString" />
+            <Field name="Values" source="R-DATA:" type="Double" />
+          </RecordInfo>
+        </MetaInfo>
+        <MetaInfo connection="Output2">
+          <RecordInfo>
+            <Field name="Graph" size="1073741823" source="Report:R-Graph:" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
+        <MetaInfo connection="Output3">
+          <RecordInfo>
+            <Field name="Name" size="1073741823" source="R-DATA:" type="V_WString" />
+            <Field name="Object" size="2147483647" source="R-DATA:SERIAL" type="Blob" />
+          </RecordInfo>
+        </MetaInfo>
+        <MetaInfo connection="Output5">
+          <RecordInfo>
+            <Field name="Graph" size="1073741823" source="Report:R-Graph:" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
+        <MetaInfo connection="Output4">
+          <RecordInfo>
+            <Field name="Graph" size="1073741823" source="Report:R-Graph:" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
       </Properties>
       <EngineSettings EngineDll="AlteryxConnectorEngine.dll" EngineDllEntryPoint="AlteryxR" />
     </Node>
@@ -453,13 +480,12 @@ http://downloads.alteryx.com/Latest_RInstaller.htm</AnnotationText>
         <Configuration>
           <UseFileInput value="False" />
           <Name>Input</Name>
-          <Abbrev>
-            <Abbrev />
-          </Abbrev>
+          <Abbrev />
           <ShowFieldMap value="False" />
+          <Optional value="False" />
           <TextInput>
             <Configuration>
-              <NumRows value="501" />
+              <NumRows value="500" />
               <Fields>
                 <Field name="MonthGive" />
                 <Field name="AveDonAmt" />
@@ -4840,7 +4866,7 @@ http://downloads.alteryx.com/Latest_RInstaller.htm</AnnotationText>
     </Node>
     <Node ToolID="126">
       <GuiSettings Plugin="AlteryxBasePluginsGui.MacroOutput.MacroOutput">
-        <Position x="2514" y="1242" />
+        <Position x="3606" y="1530" />
       </GuiSettings>
       <Properties>
         <Configuration>
@@ -4869,29 +4895,48 @@ outer_config &lt;- list(
   `Model Name` = textInput('%Question.Model Name%'),
   `Use Weights` = checkboxInput('%Question.Use Weights%' , FALSE),
   `Weight Vec` = dropdownInput('%Question.Weight Vec%'),
-  `X Vars` = listInput('%Question.X Vars%', c('Sepal.Length', 'Petal.Length')),
-  `Y Var` = dropdownInput('%Question.Y Var%', 'Species'),
+  `X Vars` = listInput('%Question.X Vars%', c('AveDonAmt', 'DonPerYear', 'LastDonAmt', 'Region')),
+  `Y Var` = dropdownInput('%Question.Y Var%', 'MonthGive'),
   regularization = checkboxInput('%Question.regularization%', FALSE),
   alpha = numericInput('%Question.alpha%', .5),
   lambda_1se = radioInput('%Question.lambda.1se%', TRUE),
   lambda_min = radioInput('%Question.lambda.min%', FALSE),
   standardize_pred = checkboxInput('%Question.standardize_pred%', TRUE),
   internal_cv = checkboxInput('%Question.internal_cv%', TRUE),
-  set_seed_internal_cv = checkboxInput('%Question.set_seed_internal_cvv%', TRUE),
+  set_seed_internal_cv = checkboxInput('%Question.set_seed_internal_cv%', TRUE),
   seed_internal_cv = numericInput('%Question.seed_internal_cv%', 1),
   nfolds = numericInput('%Question.nfolds%', 5),
   lambda_no_cv = numericInput('%Question.lambda_no_cv%', NULL),
   display_graphs = checkboxInput('%Question.display_graphs%', TRUE),
-  external_cv = checkboxInput('%Question.external_cv%', FALSE),
+  external_cv = checkboxInput('%Question.external_cv%', TRUE),
   nfolds_external = numericInput('%Question.nfolds_external%', NULL),
   set_seed_external_cv = checkboxInput('%Question.set_seed_external_cv%', FALSE),
   external_seed_value = numericInput('%Question.external_seed_value%', NULL),
   `Omit Constant` = checkboxInput('%Question.Omit Constant%' , FALSE)
 )
 
+
+
+config &lt;- list(
+  `classification` = TRUE,
+  `modelType` = NULL,
+  `numberFolds` = numericInput('%Question.nfolds_external%' , 5),
+  `numberTrials` = numericInput('%Question.numberTrials%' , 3),
+  `posClass` = NULL,
+  `regression` = FALSE,
+  `stratified` = FALSE,
+  `seed` = numericInput('%Question.seed%', 1)
+)
+
+config &lt;- append(config, outer_config)
+
 options(alteryx.wd = '%Engine.WorkflowDirectory%')
 options(alteryx.debug = outer_config)
 
+inputs &lt;- list(
+  data = read.Alteryx("#2"),
+  models = list(model = unserializeObject((read.Alteryx("#1")$Object)[[1]]))
+)
 
 if (!(outer_config$regularization)) {
   mod.df &lt;- read.Alteryx("#1")
@@ -4899,708 +4944,26 @@ if (!(outer_config$regularization)) {
   the.class &lt;- class(mod.obj)[1]
   write.Alteryx(data.frame(Class = the.class))
 }
+
 if (outer_config$external_cv) {
-  ###########################################
-  #' ---
-  #' title: Cross Validation Macro
-  #' author: Bridget Toomey
-  #' ---
-  #' 
-  #' 
-  #' Utility function to check to see if the necessary packages are
-  #' installed and install them if they're not.
-  #'
-  #'
-  #' @param packages vector of package names to check and install.
-  #' @export
-  #' @author Bridget Toomey, Dan Putler
-  checkInstalls &lt;- function(packages) {
-    # See if the desired packages are installed, and install if they're not
-    if (!all(packages %in% row.names(installed.packages()))) {
-      # Use the IE based "Internet2" since it is most reliable for this action,
-      # it will be switched back at the end
-      #setInternet2(use = TRUE)
-      # Make sure the path to the users library is in place and create it if it
-      # is not
-      minor_ver &lt;- strsplit(R.Version()$minor, "\\.")[[1]][1]
-      R_ver &lt;- paste(R.Version()$major, minor_ver, sep = ".")
-      the_path &lt;- paste0(normalizePath("~"), "\\R\\win-library\\", R_ver)
-      # Create the user's personal folder if it doesn't already exist
-      if (!dir.exists(the_path)) {
-        dir.create(the_path, recursive = TRUE, showWarnings = FALSE)
-      }
-      # The set of possible repositories to use
-      repos &lt;- c("http://cran.revolutionanalytics.com", "https://cran.rstudio.com")
-      # Select a particular repository
-      repo &lt;- sample(repos, 1)
-      repo &lt;- c(repo, "https://alteryx.github.io/drat")
-      missingPackages &lt;- packages[which(!(packages %in% row.names(installed.packages())))]
-      install.packages(missingPackages, lib = the_path, repos = repo)
-      #setInternet2(use = FALSE)
-    }
-  }
-  
-  checkInstalls(c("ROCR", "plyr", "TunePareto", "sm", "vioplot", "ggplot2", "AlteryxPredictive"))
-  library(ROCR)
-  library("TunePareto")
-  library("sm")
-  library("vioplot")
-  library("ggplot2")
-  
-  #Make sure the user has at least AlteryxPredictive 0.3.1, since that version
-  #contains scoreModel2
-  if (packageVersion("AlteryxPredictive") &lt; '0.3.2') {
-    setInternet2(use = TRUE)
-    the_path &lt;- paste0(normalizePath("~"), "\\R\\win-library\\", R.Version()$major, ".", substr(R.Version()$minor, start = 1, stop = 1))
-    install.packages("AlteryxPredictive", lib = the_path, repos = "https://alteryx.github.io/drat")
-    setInternet2(use = FALSE)
-  }
-  
-  #' ### Read Configuration
-  #' ## DO NOT MODIFY: Auto Inserted by AlteryxRhelper ----
-  suppressWarnings(library(AlteryxPredictive))
-  config &lt;- list(
-    `classification` = TRUE,
-    `modelType` = NULL,
-    `numberFolds` = numericInput('%Question.nfolds_external%' , 5),
-    `numberTrials` = numericInput('%Question.numberTrials%' , 3),
-    #This should be added as a config option in Logistic Regression, but it's irrelevant
-    #here, since we're solving a regression problem
-    `posClass` = NULL,
-    `predFields` = listInput('%Question.predFields%'),
-    `regression` = FALSE,
-    `stratified` = FALSE,
-    `seed` = numericInput('%Question.seed%', 1)
-  )
-  config &lt;- append(config, outer_config)
-  options(alteryx.wd = '%Engine.WorkflowDirectory%')
-  options(alteryx.debug = config$debug)
-  ##----
-  
-  
-  library(plyr)
-  #' ### Defaults
-  #' These defaults are used when the R code is run outside Alteryx
-  if (!inAlteryx()){
-    macroDirectory &lt;- textInput('%Engine.WorkflowDirectory%', "Supporting_Macros")
-    dataDir &lt;- file.path(macroDirectory, "Data")
-    defaults &lt;- list(
-      data = readRDS(file.path(dataDir, "data.rds")),
-      models = readRDS(file.path(dataDir, "models.rds"))
-    )
-  }
-  
-  #' ### Inputs
-  #' 
-  #' This is a named list of all inputs that stream into the R tool.
-  inputs &lt;- list(
-    data = read.Alteryx2("#2", default = defaults$data),
-    models = readModelObjects("#1", default = defaults$models)
-  )
-  
-  
-  ##---- Inputs/Config Complete
-  
-  #' ### Helper Functions
-  areIdentical &lt;- function(v1, v2){
-    identical(sort(v1), sort(v2))
-  }
-  
-  #' Helper Functions For Tests
-  makePayload &lt;- function(csvFile, modelsFile){
-    test_data &lt;- read.csv(csvFile)
-    list(
-      #data = test_data[, c(targetVar, setdiff(names(test_data), targetVar))],
-      data = test_data,
-      models = AlteryxPredictive::readModelObjects("2", readRDS(modelsFile))
-    )
-  }
-  
-  runTest &lt;- function(modelName, payload){
-    inputs &lt;- list(data = payload$data, models = payload$models[modelName])
-    message(paste(modelName, 'passes'))
-    test_that(paste(modelName, 'passes'), {
-      expect_that(invisible(getResultsCrossValidation(inputs, config)), throws_error(NA) )
-    })
-  }
-  
-  #' ## Check predictor variables
-  #' 
-  #' Check if predictor variables in the models and input data are identical.
-  checkXVars &lt;- function(inputs){
-    numModels &lt;- length(inputs$models)
-    modelNames &lt;- names(inputs$models)
-    modelXVars &lt;-  if (packageVersion('AlteryxPredictive') &lt;= '0.3.2'){
-      lapply(inputs$models, getXVars2)
-    } else {
-      lapply(inputs$models, getXVars)
-    }
-    dataXVars &lt;- names(inputs$data)[which(names(inputs$data) %in% unlist(modelXVars))]
-    errorMsg &lt;- NULL
-    if (numModels &gt; 1) {
-      for (i in 1:(numModels - 1)){
-        mvars1 &lt;- modelXVars[[i]]
-        mvars2 &lt;- modelXVars[[i + 1]]
-        if (!areIdentical(mvars1, mvars2)){
-          errorMsg &lt;- paste("Models", modelNames[i] , "and", modelNames[i + 1],
-                            "were created using different predictor variables.")
-          stopMsg &lt;- "Please ensure all models were created using the same predictors."
-        } 
-        else if (!all(mvars1 %in% dataXVars)){
-          errorMsg &lt;- paste("Model ", modelNames[i], 
-                            "used predictor variables which were not contained in the input data.")
-          stopMsg &lt;- paste("Please ensure input data contains all the data",
-                           "used to create the models and try again.")
-        }
-        if (!is.null(errorMsg)){
-          AlteryxMessage2(errorMsg, iType = 2, iPriority = 3)
-          stop.Alteryx2(stopMsg)
-        }
-      }
-    } else {
-      mvars1 &lt;- modelXVars[[1]]
-      if (!all(mvars1 %in% dataXVars)){
-        errorMsg &lt;- paste("Model ", modelNames[1], 
-                          "used predictor variables which were not contained in the input data.")
-        stopMsg &lt;- paste("Please ensure input data contains all the data",
-                         "used to create the models and try again.")
-      }
-      if (!is.null(errorMsg)){
-        AlteryxMessage2(errorMsg, iType = 2, iPriority = 3)
-        stop.Alteryx2(stopMsg)
-      }
-    }
-  }
-  
-  #' Given a factor variable and a set of records in a fixed trial and fold,
-  #' return the list of classes not present in that trial and fold.
-  getMissingClasses &lt;- function(currentClasses, currentRecords) {
-    currentClasses[(!(currentClasses %in% currentRecords))]
-  }
-  
-  #' For each factor variable, check to see if all levels are present in each fold. 
-  #' If not, warn the user.
-  #' 
-  
-  checkFactorVars &lt;- function(data, folds, config) {
-    #All of the discrete variables will be some type of string in Alteryx. So they'll be read as factors, since stringsAsFactors is TRUE in read.Alteryx.
-    factorVars &lt;- data[,sapply(data, FUN = is.factor), drop = FALSE]
-    #We only need to check if there's at least one factor variable. If all variables are continuous, we don't need to do anything.
-    if (NCOL(factorVars) &gt; 0) {
-      for (k in 1:NCOL(factorVars)) {
-        uniqueClasses &lt;- unique(factorVars[,k])
-        currentVar &lt;- factorVars[,k]
-        #We want to check if one of the folds on one of the trials is missing any classes.
-        #If a class is missing from a fold, we output a warning suggesting that the user check their data/try to collect more data.
-        #If a training set is missing a class, we output a fatal error telling the user they must ensure
-        #that each training set contains all classes.
-        for (i in 1: (config$numberTrials)) {
-          for (j in 1:(config$numberFolds)) {
-            currentTestRecords &lt;- currentVar[unlist(folds[[i]][j])]
-            currentTrainingRecords &lt;- currentVar[unlist(folds[[i]][-j])]
-            missingTestClasses &lt;- getMissingClasses(currentClasses = uniqueClasses, currentRecords = currentTestRecords)
-            missingTrainingClasses &lt;- getMissingClasses(currentClasses = uniqueClasses, currentRecords = currentTrainingRecords)
-            #testing if all classes are represented in trial i, fold j
-            if (length(missingTestClasses) &gt; 0) {
-              currentColumnName &lt;- colnames(factorVars)[k]
-              if (length(missingTestClasses) &gt; 1) {
-                warningMessage1 &lt;- paste0("Classes ", missingTestClasses, " were not present in variable ", currentColumnName, " of the test set.")
-                warningMessage2 &lt;- "It is recommended that you either check your data to ensure no records were mis-labeled or collect more data on these classes."
-              } else {
-                warningMessage1 &lt;- paste0("Class ", missingTestClasses, " was not present in variable ", currentColumnName, " of the test set.")
-                warningMessage2 &lt;- "It is recommended that you either check your data to ensure no records were mis-labeled or collect more data on this class."
-              }
-              AlteryxMessage2(warningMessage1)
-              AlteryxMessage2(warningMessage2)
-            }
-            #testing if all classes are represented in the training set when trial i, fold j is the test set. 
-            #So the training set here is trial i, all folds except fold j.
-            if (length(missingTrainingClasses) &gt; 0) {
-              currentColumnName &lt;- colnames(factorVars)[k]
-              if (length(missingTrainingClasses) &gt; 1) {
-                warningMessage1 &lt;- paste0("Classes ", missingTrainingClasses, " were not present in variable ", currentColumnName," of the training set.")
-                warningMessage2 &lt;- "It is recommended that you either check your data to ensure no records were mis-labeled or collect more data on these classes."
-                errorMessage &lt;- "It is very difficult to create an accurate model when the training set is missing a class."
-              } else {
-                warningMessage1 &lt;- paste0("Class ", missingTrainingClasses, " was not present in variable ", currentColumnName, " of the training set.")
-                warningMessage2 &lt;- "It is recommended that you either check your data to ensure no records were mis-labeled or collect more data on this class."
-                errorMessage &lt;- "It is very difficult to create an accurate model when the training set is missing classes."
-              }
-              AlteryxMessage2(warningMessage1)
-              AlteryxMessage2(warningMessage2)
-              AlteryxMessage2(errorMessage)
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  
-  #Create the list of cross-validation folds and output warnings/errors as appropriate
-  createFolds &lt;- function(data, config) {
-    target &lt;- data[, 1]
-    set.seed(config$seed)
-    foldList &lt;- generateCVRuns(labels = target, ntimes = config$numberTrials, nfold = config$numberFolds, stratified = config$stratified)
-    checkFactorVars(data = data, folds = foldList, config = config)
-    return(foldList)
-  }
-  
-  
-  
-  #Check if response variable is the same in the pre-built model(s) and the input data.
-  #If so, output this variable.
-  getYvars &lt;- function(data, models) {
-    # Get the names of the target fields and make sure they are all same. If not,
-    # throw an error.
-    y_names &lt;- sapply(models, AlteryxPredictive:::getYVar)
-    if (!all(y_names == y_names[1])) {
-      stop.Alteryx2("More than one target variable are present in the provided models")
-    } else if (!(y_names[1] %in% colnames(data))) {
-      stop.Alteryx2("The target variable from the models is different than the target chosen in the configuration. Please check your configuration settings and try again.")
-    }
-    # get the target variable name
-    y_name &lt;- y_names[1]
-    # Get the target variable
-    return(list(y_col = data[[y_name]], y_name = y_name))
-  }
-  
-  #In the 2-class classification case, get the positive class. Otherwise, do nothing.
-  getPosClass &lt;- function(config, yVar) {
-    
-    #Use the function from the Model Comparison tool to get/set positive class:
-    setPositiveClass &lt;- function(tar_lev) {
-      # Set the postive class for two-class classification.
-      # The setPositiveClass function is only triggered if the user leaves the
-      # question on positive class (target level) blank.
-      #   1) if there's "yes/Yes/YES ..." in the target variable, then use "yes/Yes/YES"
-      #   2) if there's "true/True/TRUE..." in the target variable, then use "true/True/TRUE"
-      #   3) otherwise: use the first level by alphabetical order.
-      #
-      # Parameters:
-      #   tar_lev: a vector of string
-      #            the levels of the target variable.
-      #
-      # Returns:
-      #   no_name: a string, the name of the positive class.
-      
-      yes_id &lt;- match("yes", tolower(tar_lev))
-      true_id &lt;- match("true", tolower(tar_lev))
-      if (!is.na(yes_id)) {
-        return (tar_lev[yes_id])
-      } else if (!is.na(true_id)) {
-        return (tar_lev[true_id])
-      } else {
-        return (tar_lev[1])
-      }
-    }
-    return(setPositiveClass(yVar))
-  }
-  
-  adjustGbmModel &lt;- function(model){
-    method &lt;- if (model$cv.folds &gt; 1){
-      "cv"
-    } else if (model$train.function &lt; 1){
-      "test"
-    } else {
-      "OOB"
-    }
-    model$best.trees &lt;- gbm.perf(model, method = method)
-    return(model)
-  }
-  
-  #   naiveBayesUpdate &lt;- function(model, trainingData, currentYvar) {
-  #     
-  #     if (is.null(model$laplace)) {
-  #       model$laplace &lt;- 0
-  #       AlteryxMessage2("The Laplace smoothing parameter was not saved in the model object.", iType = 2, iPriority = 3)
-  #       AlteryxMessage2("Hence, we are using a smoothing parameter of 0 for Cross-Validation.", iType = 2, iPriority = 3)
-  #     }
-  #     predictors &lt;- trainingData[,-(which(colnames(trainingData) == currentYvar))]
-  #     response &lt;- trainingData[,(which(colnames(trainingData) == currentYvar))]
-  #     naiveBayes.default &lt;- getS3method("naiveBayes", "default")
-  #     currentModel &lt;- update(model, x = predictors, y = response, laplace = model$laplace)
-  #     return(currentModel)
-  #   }
-  glmnetUpdate &lt;- function(model, trainingData, currentYvar, config, weight_vec = NULL) {
-    predictors &lt;- trainingData[,AlteryxPredictive:::getXVars(model)]
-    response &lt;- trainingData[,(which(colnames(trainingData) == currentYvar))]
-    library(glmnet)
-    model_w_call &lt;- if (config$internal_cv) {
-      model$glmnet.fit
-    } else {
-      model
-    }
-    if (config$`Use Weights`) {
-      currentModel &lt;- update(model_w_call, x = predictors, y = response, weights = weight_vec)
-    } else {
-      #currentModel &lt;- update(model, formula. = makeFormula(AlteryxPredictive:::getXVars(model), currentYvar), data = trainingData)
-      currentModel &lt;- update(model_w_call, x = predictors, y = response)
-    }
-    currentModel$xvars &lt;- colnames(predictors)
-    currentModel$lambda_pred &lt;- if (config$internal_cv) {
-      if (config$lambda_1se) {
-        model$lambda.1se
-      } else {
-        model$lambda.min
-      }
-    } else {
-      config$lambda_no_cv
-    }
-    return(currentModel)
-  }
-  
-  #' Given a model, a dataset and index of test cases, return actual and response
-  getActualandResponse &lt;- function(model, data, testIndices, extras, mid, config){
-    trainingData &lt;- data[-testIndices,]
-    testData &lt;- data[testIndices,]
-    testData &lt;- matchLevels(testData, getXlevels(model))
-    currentYvar &lt;- extras$y_name
-    #Check if the model is Naive Bayes and lacking a Laplace parameter.
-    #If so, set the Laplace parameter to 0 and warn the user.
-    #     if (inherits(model, "naiveBayes")) {
-    #       currentModel &lt;- naiveBayesUpdate(model, trainingData, currentYvar)
-    #     } else 
-    if ((inherits(model, "cv.glmnet")) || (inherits(model, "glmnet"))) {
-      #Ideally, it would be more efficient to convert the x df to a matrix earlier so that
-      #this conversion wouldn't be necessary with every trial/fold. However, the code assumes
-      #that we're dealing with a df in many other places. This are could be ripe for refactoring
-      #in the future.
-      weights_v &lt;- trainingData[[config$`Weight Vec`]]
-      trainingData &lt;- AlteryxPredictive:::df2NumericMatrix(trainingData)
-      #No need to call df2NmericMatrix on testData, since scoreModel calls df2NumericMatrix with glmnet models.
-      currentModel &lt;- glmnetUpdate(model, trainingData, currentYvar, config, weight_vec = weights_v)
-    } else {
-      if (config$`Use Weights`) {
-        # WORKAROUND
-        # The assign() statement below moves the token ‘getActualandResponse’ to the global environment, where the update() function can find it.  
-        # Otherwise, something inside update() isn’t finding ‘getActualandResponse’ on its environment search path.
-        #assign(x = 'trainingDatagetActualandResponse403', value = trainingData, envir = globalenv())
-        my_envir &lt;- environment()
-        lapply(
-          X = 1:ncol(trainingData),
-          FUN = function(i){
-            assign(
-              x = names(trainingData)[i],
-              value = trainingData[,i],
-              envir = my_envir
-            )
-          }
-        )
-        currentModel &lt;- update(model, formula. = makeFormula(AlteryxPredictive:::getXVars(model), currentYvar), data = environment(), weights = trainingData$`Weight Vec`)
-      } else {
-        currentModel &lt;- update(model, formula. = makeFormula(AlteryxPredictive:::getXVars(model), currentYvar), data = trainingData)
-      }
-    }
-    if (inherits(currentModel, 'gbm')){
-      currentModel &lt;- adjustGbmModel(currentModel)
-    }
-    pred &lt;- if (packageVersion('AlteryxPredictive') &lt;= '0.3.2') {
-      AlteryxPredictive::scoreModel2(currentModel, new.data = testData)
-    } else {
-      AlteryxPredictive::scoreModel(currentModel, new.data = testData)
-    }
-    actual &lt;- (extras$yVar)[testIndices]
-    recordID &lt;- (data[testIndices,])$recordID
-    response &lt;- pred$Score
-    return(data.frame(recordID = recordID, response = response, actual = actual))
-  }
-  
-  safeGetActualAndResponse &lt;- failwith(NULL, getActualandResponse, quiet = FALSE)
-  
-  #' 
-  getCrossValidatedResults &lt;- function(inputs, allFolds, extras, config){
-    function(mid, trial, fold){
-      model &lt;- inputs$models[[mid]]
-      testIndices &lt;- allFolds[[trial]][[fold]]
-      out &lt;- (safeGetActualAndResponse(model, inputs$data, testIndices, extras, mid, config))
-      if (is.null(out)) {
-        AlteryxMessage2(paste0("For model ", mid, " trial ", trial, " fold ", fold, " the data could not be scored."), iType = 2, iPriority = 3)
-      } else {
-        out &lt;- cbind(trial = trial, fold = fold, mid = mid, out)
-      }
-      return(out)
-    }
-  }
-  
-  getPkgListForModels &lt;- function(models){
-    modelClasses &lt;- unlist(lapply(models, class))
-    pkgMap = list(
-      gbm = "gbm", rpart = "rpart", svm.formula = "e1071", svm = "e1071",
-      naiveBayes = "e1071", svyglm = "survey", nnet.formula = "nnet",
-      randomForest.formula = "randomForest", earth = "earth", glmnet = "glmnet",
-      elnet = "glmnet", cv.glmnet = "glmnet", lognet = "glmnet"
-    )
-    unique(unlist(pkgMap[modelClasses]))
-  }
-  
-  #Get the necessary measures in the regression case
-  getMeasuresRegression &lt;- function(outData, extras) {
-    actual &lt;- unlist(outData$actual)
-    predicted &lt;- unlist(outData$response)
-    modelIndic &lt;- outData$mid
-    trialIndic &lt;- outData$trial
-    foldIndic &lt;- outData$fold
-    err &lt;- actual - predicted
-    rmse &lt;- sqrt(mean(err*err))
-    mae &lt;- mean(abs(err))
-    # When there are values near 0 in the target variable, it can lead to an attempt to divide by 0
-    # In this case, use the weighted version.
-    if (any(abs(actual) &lt; 0.001)) {
-      AlteryxMessage("The target variable contains values very close to 0 (-0.001, 0.001). WPE and WAPE are being used instead of MPE and MAPE.", iType = 2, iPriority = 3)
-      mpe &lt;- 100 * sum(err) / sum(actual)
-      mape &lt;- 100 * sum(abs(err)) / sum(actual)
-    } else {
-      mpe &lt;- 100*mean(err/actual)
-      mape &lt;- 100*mean(abs(err/actual))
-    }
-    data.frame(
-      Correlation = cor(predicted, actual), RMSE = rmse, MAE = mae, MPE= mpe, MAPE = mape
-    )
-  }
-  
-  #Get the necessary measures in the classification case
-  getMeasuresClassification &lt;- function(outData, extras) {
-    actual &lt;- as.character(outData$actual)
-    scoredData &lt;- outData[,7:8]
-    scoredOutput &lt;- as.character(outData$response)
-    posClass &lt;- extras$posClass
-    modelIndic &lt;- unique(outData$mid)
-    trialIndic &lt;- unique(outData$trial)
-    foldIndic &lt;- unique(outData$fold)
-    overallAcc &lt;- sum(actual == scoredOutput)/length(actual)
-    if (length(extras$levels) == 2) {
-      true_y &lt;- factor(TRUE*(actual == posClass)) # if levels are strings rather than TRUE/FALSE
-      #We need to know which column of scoredData corresponds to the positive class in order to set up the needed intermediate steps for obtaining the AUC
-      posClassCol &lt;- which((extras$levels) == posClass)
-      negClassCol &lt;- which((extras$levels) != posClass)
-      predictions &lt;- scoredData[,posClassCol]
-      predictionObj &lt;- prediction(predictions = predictions, labels = actual)
-      
-      # =================================================================
-      # Quick Reference:
-      #       precision = tp / (tp + fp)
-      #          recall = tp / (tp + fn)
-      #             tpr = tp / (tp + fn)
-      #             fpr = fp / (fp + tn)
-      #              f1 = 2 * precision * recall / (precision + recall)
-      # ==================================================================
-      
-      #     perf_acc &lt;- performance(predictionObj, "acc", "cutoff")
-      #     perf_lift &lt;- performance(predictionObj, "lift", "rpp")
-      #     perf_gain &lt;- performance(predictionObj, "tpr", "rpp")
-      #     perf_roc &lt;- performance(predictionObj, "tpr", "fpr")
-      #     perf_pr &lt;- performance(predictionObj, "prec", "rec")
-      actualPosIndic &lt;- which(actual == posClass)
-      nActualPos &lt;- length(actualPosIndic)
-      nCorrectPos &lt;- sum(scoredOutput[actualPosIndic] == posClass)
-      nPredPos &lt;- sum(scoredOutput == posClass)
-      precision &lt;- nCorrectPos/nPredPos
-      recall &lt;- nCorrectPos/nActualPos
-      F1 &lt;- 2*(precision*recall)/(precision + recall)
-      AUC &lt;- performance(prediction.obj = predictionObj, measure = "auc")
-      AUC &lt;- unlist(AUC@y.values)
-      percentClass1Right &lt;- sum(scoredOutput[which(actual == (extras$levels)[1])] == (extras$levels)[[1]])/length(which(actual == (extras$levels)[1]))
-      percentClass2Right &lt;- sum(scoredOutput[which(actual == (extras$levels)[2])] == (extras$levels)[[2]])/length(which(actual == (extras$levels)[2]))
-      outVec &lt;- c(mid = modelIndic, trial = trialIndic, fold = foldIndic, Accuracy_Overall = overallAcc, Accuracy_Class_1 = percentClass1Right, Accuracy_Class_2 = percentClass2Right, F1 = F1, AUC = AUC)
-    } else {
-      #Compute accuracy by class
-      outVec &lt;- vector(length = length((extras$levels)))
-      for (l in 1:length((extras$levels))) {
-        tempPred &lt;- scoredOutput[actual == (extras$levels)[[l]]]
-        nCorrect &lt;- sum(tempPred == (extras$levels)[[l]])
-        thisAcc &lt;- nCorrect/sum(actual == (extras$levels)[[l]])
-        outVec[l] &lt;- thisAcc
-        names(outVec)[l] &lt;- paste0("Accuracy_Class_", l)
-      }
-      outVec &lt;- c(mid = modelIndic, trial = trialIndic, fold = foldIndic, Accuracy_Overall = overallAcc, outVec)
-    }
-    return(outVec)
-  }
-  
-  #' ### Functions to Generate Output
-  #' 
-  generateConfusionMatrices &lt;- function(outData, extras) {
-    outvec &lt;- vector(length = length(extras$levels))
-    pasteClass &lt;- function(nameOfClass) {
-      paste0("Class_", nameOfClass)
-    }
-    names(outvec) &lt;- sapply(X = (extras$levels), FUN = pasteClass, simplify = TRUE)
-    for (i in 1:length(extras$levels)) {
-      outvec[i] &lt;- length(which((outData$actual) == ((extras$levels)[i])))
-    }
-    return(c(mid = unique(outData$mid), trial = unique(outData$trial), fold = unique(outData$fold), Predicted_class = as.character(unique(outData$response)), outvec))
-  }
-  
-  generateOutput3 &lt;- function(data, extras, modelNames) {
-    d &lt;- ddply(data, .(trial, fold, mid, response), generateConfusionMatrices, 
-               extras = extras
-    )
-    d$Model &lt;- modelNames[as.numeric(d$mid)]
-    d$Type &lt;- rep.int('Classification', times = length(d$Model))
-    d &lt;- subset(d, select = -c(mid, response))
-    d &lt;- reshape2::melt(d, id = c('trial', 'fold', 'Model', 'Type', 'Predicted_class'))
-    colnames(d) &lt;- c('Trial', 'Fold', 'Model', 'Type', 'Predicted_class', 'Variable', 'Value')
-    return(d)
-  }
-  
-  generateOutput2 &lt;- function(data, extras, modelNames) {
-    fun &lt;- if (is.null(extras$levels)) {
-      getMeasuresRegression 
-    } else {
-      getMeasuresClassification
-    }
-    d &lt;- ddply(data, .(trial, fold, mid), fun, extras = extras)
-    d$Model &lt;- modelNames[as.numeric(d$mid)]
-    d &lt;- subset(d, select = -c(mid))
-    return(d)
-  }
-  
-  generateOutput1 &lt;- function(inputs, config, extras){
-    pkgsToLoad &lt;- getPkgListForModels(inputs$models)
-    for (pkg in pkgsToLoad) library(pkg, character.only = TRUE)
-    allFolds &lt;- extras$allFolds
-    g &lt;- expand.grid(
-      mid = seq_along(inputs$models),
-      trial = seq_along(allFolds),
-      fold = seq_along(allFolds[[1]])
-    )
-    return(mdply(g, getCrossValidatedResults(inputs, allFolds, extras, config)))
-  }
-  
-  computeBinaryMetrics &lt;- function(pred_prob, actual, threshold){
-    #Pred_prob gives the predicted probability of belonging to the positive class
-    #Actual is true if the record belongs to the positive class and negative if not
-    actualPosIndic &lt;- which(actual == TRUE)
-    actualNegIndic &lt;- which(actual == FALSE)
-    nActualPos &lt;- length(actualPosIndic)
-    thresholdedPredictions &lt;- (pred_prob &gt;= threshold)
-    nCorrectPos &lt;- sum(thresholdedPredictions[actualPosIndic])
-    nPredPos &lt;- sum(thresholdedPredictions)
-    nPredNeg &lt;- length(actual) - length(nPredPos)
-    nCorrectNeg &lt;- sum(1 - (thresholdedPredictions[-actualPosIndic]))
-    overallAcc &lt;- sum(thresholdedPredictions == actual)/length(actual)
-    PosAcc &lt;- length(intersect(which(thresholdedPredictions == TRUE), actualPosIndic))/length(actualPosIndic)
-    NegAcc &lt;- length(intersect(which(thresholdedPredictions == FALSE), actualNegIndic))/length(actualNegIndic)
-    precision &lt;- nCorrectPos/nPredPos
-    recall &lt;- nCorrectPos/nActualPos
-    F1 &lt;- 2*(precision*recall)/(precision + recall)
-    tpr &lt;- recall
-    rpp &lt;- nPredPos/length(pred_prob)
-    lift &lt;- tpr/rpp
-    fpr &lt;- (nPredPos - nCorrectPos)/length(actualNegIndic)
-    pred &lt;- prediction(predictions = pred_prob, labels = actual)
-    auc &lt;- performance(pred, "auc")
-    auc &lt;- unlist(auc@y.values)
-    data.frame(threshold = threshold, recall = recall, F1 = F1, lift = lift, Rate_Pos_Predictions = rpp, True_Pos_Rate = tpr, False_Pos_Rate = fpr, Precision = precision)
-  }
-  
-  generateDataForPlots &lt;- function(d, extras, config){
-    data.frame(response = d$response, actual = d$actual)
-  }
-  
-  generateLabels &lt;- function(plotData, config) {
-    trials &lt;- c()
-    for (i in 1:length(unique(plotData$trial))) {
-      trials &lt;- c(trials, paste0("Trial ", unique(plotData$trial))[i])
-    }
-    models &lt;- c()
-    for (i in 1:length(unique(plotData$mid))) {
-      models &lt;- c(models, paste0("Model ", unique(plotData$model))[i])
-    }
-    list(trials = trials, models = models)
-  }
-  
-  plotBinaryData &lt;- function(plotData, config, modelNames) {
-    labels &lt;- generateLabels(plotData, config)
-    modelVec &lt;- modelNames[plotData$mid]
-    trialVec &lt;- paste0('Trial ', plotData$trial)
-    plotData &lt;- cbind(plotData, modelVec, trialVec)
-    liftdf &lt;- data.frame(Rate_positive_predictions = plotData$Rate_Pos_Predictions, lift = plotData$lift, fold = paste0("Fold", plotData$fold), 
-                         models = plotData$modelVec, trial = plotData$trialVec)
-    gaindf &lt;- data.frame(Rate_positive_predictions = plotData$Rate_Pos_Predictions, True_Pos_Rate = plotData$True_Pos_Rate, fold = paste0("Fold", plotData$fold),
-                         models = plotData$modelVec, trial = plotData$trialVec)
-    prec_recalldf &lt;- data.frame(recall = plotData$recall, precision = plotData$Precision, fold = paste0("Fold", plotData$fold),
-                                models = plotData$modelVec, trial = plotData$trialVec)
-    rocdf &lt;- data.frame(False_Pos_Rate = plotData$False_Pos_Rate, True_Pos_Rate = plotData$True_Pos_Rate, fold = paste0("Fold", plotData$fold),
-                        models = plotData$modelVec, trial = plotData$trialVec)
-    
-    liftPlotObj &lt;- ggplot(data = liftdf, aes(x = Rate_positive_predictions, y = lift)) + 
-      geom_smooth(aes(colour=models)) + ggtitle("Lift curves") 
-    gainPlotObj &lt;- ggplot(data = gaindf, aes(x = Rate_positive_predictions, y = True_Pos_Rate)) + 
-      geom_smooth(aes(colour=models)) + ggtitle('Gain Charts')
-    PrecRecallPlotObj &lt;- ggplot(data = prec_recalldf, aes(x = recall, y = precision)) + 
-      geom_smooth(aes(colour=models)) + ggtitle('Precision and Recall Curves')
-    ROCPlotObj &lt;- ggplot(data = rocdf, aes(x = False_Pos_Rate, y = True_Pos_Rate)) +
-      geom_smooth(aes(colour=models)) + ggtitle('ROC Curves')
-    AlteryxGraph2(liftPlotObj, nOutput = 4)
-    AlteryxGraph2(gainPlotObj, nOutput = 4)
-    AlteryxGraph2(PrecRecallPlotObj, nOutput = 4)
-    AlteryxGraph2(ROCPlotObj, nOutput = 4)
-  }
-  
-  plotRegressionData &lt;- function(plotData, config, modelNames) {
-    modelVec &lt;- modelNames[plotData$mid]
-    trialVec &lt;- paste0('Trial ', plotData$trial)
-    plotData &lt;- cbind(plotData, modelVec, trialVec)
-    plotdf &lt;- data.frame(Actual = plotData$actual, Predicted = plotData$response, fold = paste0("Fold", plotData$fold), 
-                         models = plotData$modelVec, trial = plotData$trialVec)
-    plotObj &lt;- ggplot(data = plotdf, aes(x = Actual, y = Predicted)) + 
-      geom_smooth(aes(colour=models)) + ggtitle("Predicted value vs actual values")
-    AlteryxGraph2(plotObj, nOutput = 4)
-  }
-  
-  # Helper Functions End ----
-  getResultsCrossValidation &lt;- function(inputs, config){
-    inputs$data$recordID &lt;- 1:NROW(inputs$data)
-    yVarList &lt;- getYvars(inputs$data, inputs$models)
-    yVar &lt;- yVarList$y_col
-    y_name &lt;- yVarList$y_name
-    inputs$modelNames &lt;- names(inputs$models)
-    modelNames &lt;- names(inputs$models)
-    checkXVars(inputs)
-    extras &lt;- list(
-      yVar = yVar,
-      y_name = y_name,
-      posClass = config$posClass,
-      allFolds = createFolds(data = inputs$data, config = config),
-      levels = NULL
-    )
-    dataOutput1 &lt;- generateOutput1(inputs, config, extras)
-    if ("Score" %in% colnames(dataOutput1)) {
-      dataOutput1 &lt;- data.frame(trial = dataOutput1$trial, fold = dataOutput1$fold, 
-                                mid = dataOutput1$mid, recordID = dataOutput1$recordID,
-                                response = dataOutput1$Score, actual = dataOutput1$actual)
-    }
-    preppedOutput1 &lt;- data.frame(RecordID = dataOutput1$recordID, 
-                                 Trial = dataOutput1$trial, Fold = dataOutput1$fold, 
-                                 Model = modelNames[dataOutput1$mid], Response = dataOutput1$response, 
-                                 Actual = dataOutput1$actual)
-    
-    dataOutput2 &lt;- generateOutput2(dataOutput1, extras, modelNames)
-    preppedOutput2 &lt;- reshape2::melt(dataOutput2, id = c('trial', 'fold', 'Model'))
-    plotData &lt;- ddply(dataOutput1, .(trial, fold, mid), generateDataForPlots, 
-                      extras = extras, config = config
-    )
-    outputPlot &lt;- plotRegressionData(plotData, config, modelNames)
-    list(
-      data = preppedOutput1, fitMeasures = preppedOutput2, 
-      outputPlot = outputPlot   
-    )
-  }
-  
-  runCrossValidation &lt;- function(inputs, config){
-    results &lt;- getResultsCrossValidation(inputs, config)
-    write.Alteryx2(results$data, 2)
-    write.Alteryx2(results$fitMeasures, 3)
-    AlteryxGraph2(results$outputPlot, 4)
-  }
-  
   if (is.null(getOption("testscript"))){
-    runCrossValidation(inputs, config)
+    inputs$models &lt;- readModelObjects("#1", default = defaults$models)
+    # saveRDS(inputs, "C:\\Users\\dblanchard\\Documents\\playground\\inputs.rds")
+    # saveRDS(config, "C:\\Users\\dblanchard\\Documents\\playground\\config.rds")
+    AlteryxPredictive::runCrossValidationLogReg(inputs, config)
   }
-  
-}</RScript>
+}
+
+# dashboard &lt;- AlteryxPredictive:::interactive_lm_report(
+#   config = outer_config,
+#   data = inputs$data,
+#   model = inputs$models[[1]]
+# )
+# 
+# flightdeck:::fdRender(
+#   x = dashboard, 
+#   nOutput = 5
+# )</RScript>
           <UseFullUpdate value="False" />
         </Configuration>
         <Annotation DisplayMode="0">
@@ -5612,6 +4975,30 @@ if (outer_config$external_cv) {
         <MetaInfo connection="Output1">
           <RecordInfo>
             <Field name="Class" size="1073741823" source="R-DATA:" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
+        <MetaInfo connection="Output4">
+          <RecordInfo>
+            <Field name="Graph" size="1073741823" source="Report:R-Graph:" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
+        <MetaInfo connection="Output2">
+          <RecordInfo>
+            <Field name="RecordID" source="R-DATA:" type="Int32" />
+            <Field name="Trial" source="R-DATA:" type="Int32" />
+            <Field name="Fold" source="R-DATA:" type="Int32" />
+            <Field name="Model" size="1073741823" source="R-DATA:" type="V_WString" />
+            <Field name="Response" size="1073741823" source="R-DATA:" type="V_WString" />
+            <Field name="Actual" size="1073741823" source="R-DATA:" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
+        <MetaInfo connection="Output3">
+          <RecordInfo>
+            <Field name="trial" source="R-DATA:" type="Double" />
+            <Field name="fold" source="R-DATA:" type="Double" />
+            <Field name="Model" size="1073741823" source="R-DATA:" type="V_WString" />
+            <Field name="variable" size="1073741823" source="R-DATA:" type="V_WString" />
+            <Field name="value" source="R-DATA:" type="Double" />
           </RecordInfo>
         </MetaInfo>
       </Properties>
@@ -5796,14 +5183,14 @@ if (outer_config$external_cv) {
         </Annotation>
         <MetaInfo connection="Left">
           <RecordInfo>
-            <Field name="grp" size="1073741823" source="R-DATA:" type="V_WString" />
-            <Field name="out" size="1073741823" source="R-DATA:" type="V_WString" />
+            <Field name="Coefficients" size="1073741823" source="R-DATA:" type="V_WString" />
+            <Field name="Values" source="R-DATA:" type="Double" />
           </RecordInfo>
         </MetaInfo>
         <MetaInfo connection="Right">
           <RecordInfo>
-            <Field name="grp" size="1073741823" source="R-DATA:" type="V_WString" />
-            <Field name="out" size="1073741823" source="R-DATA:" type="V_WString" />
+            <Field name="Coefficients" size="1073741823" source="R-DATA:" type="V_WString" />
+            <Field name="Values" source="R-DATA:" type="Double" />
           </RecordInfo>
         </MetaInfo>
       </Properties>
@@ -5896,6 +5283,16 @@ if (outer_config$external_cv) {
           <DefaultAnnotationText />
           <Left value="False" />
         </Annotation>
+        <MetaInfo connection="Left">
+          <RecordInfo>
+            <Field name="Graph" size="1073741823" source="Report:R-Graph:" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
+        <MetaInfo connection="Right">
+          <RecordInfo>
+            <Field name="Graph" size="1073741823" source="Report:R-Graph:" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
       </Properties>
       <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxDetour" />
     </Node>
@@ -5938,12 +5335,96 @@ if (outer_config$external_cv) {
           <DefaultAnnotationText />
           <Left value="False" />
         </Annotation>
+        <MetaInfo connection="Left">
+          <RecordInfo>
+            <Field name="Graph" size="1073741823" source="Report:R-Graph:" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
+        <MetaInfo connection="Right">
+          <RecordInfo>
+            <Field name="Graph" size="1073741823" source="Report:R-Graph:" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
       </Properties>
       <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxDetour" />
     </Node>
+    <Node ToolID="203">
+      <GuiSettings Plugin="AlteryxBasePluginsGui.AlteryxSelect.AlteryxSelect">
+        <Position x="2886" y="1566" />
+      </GuiSettings>
+      <Properties>
+        <Configuration>
+          <OrderChanged value="False" />
+          <SelectFields>
+            <SelectField field="Report" selected="True" />
+            <SelectField field="*Unknown" selected="False" />
+          </SelectFields>
+        </Configuration>
+        <Annotation DisplayMode="0">
+          <Name />
+          <DefaultAnnotationText />
+          <Left value="False" />
+        </Annotation>
+        <MetaInfo connection="Output">
+          <RecordInfo>
+            <Field name="Report" size="1073741823" source="Report: (Multiple Sources)" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
+      </Properties>
+      <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxSelect" />
+    </Node>
+    <Node ToolID="204">
+      <GuiSettings Plugin="AlteryxBasePluginsGui.AlteryxSelect.AlteryxSelect">
+        <Position x="3270" y="1638" />
+      </GuiSettings>
+      <Properties>
+        <Configuration>
+          <OrderChanged value="False" />
+          <SelectFields>
+            <SelectField field="Graph" selected="True" rename="Report" />
+            <SelectField field="*Unknown" selected="False" />
+          </SelectFields>
+        </Configuration>
+        <Annotation DisplayMode="0">
+          <Name />
+          <DefaultAnnotationText />
+          <Left value="False" />
+        </Annotation>
+        <MetaInfo connection="Output">
+          <RecordInfo>
+            <Field name="Report" size="1073741823" source="Report: (Multiple Sources)" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
+      </Properties>
+      <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxSelect" />
+    </Node>
+    <Node ToolID="205">
+      <GuiSettings Plugin="AlteryxBasePluginsGui.Union.Union">
+        <Position x="3402" y="1542" />
+      </GuiSettings>
+      <Properties>
+        <Configuration>
+          <ByName_ErrorMode>Warning</ByName_ErrorMode>
+          <ByName_OutputMode>All</ByName_OutputMode>
+          <Mode>ByName</Mode>
+          <SetOutputOrder value="False" />
+        </Configuration>
+        <Annotation DisplayMode="0">
+          <Name />
+          <DefaultAnnotationText />
+          <Left value="False" />
+        </Annotation>
+        <MetaInfo connection="Output">
+          <RecordInfo>
+            <Field name="Report" size="1073741823" source="Report: (Multiple Sources)" type="V_WString" />
+          </RecordInfo>
+        </MetaInfo>
+      </Properties>
+      <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxUnion" />
+    </Node>
     <Node ToolID="157">
       <GuiSettings Plugin="AlteryxGuiToolkit.ToolContainer.ToolContainer">
-        <Position x="2622" y="959" width="767" height="474" />
+        <Position x="2682" y="858" width="767" height="414" />
       </GuiSettings>
       <Properties>
         <Configuration>
@@ -5959,66 +5440,9 @@ if (outer_config$external_cv) {
         </Annotation>
       </Properties>
       <ChildNodes>
-        <Node ToolID="143">
-          <GuiSettings Plugin="AlteryxBasePluginsGui.MacroOutput.MacroOutput">
-            <Position x="2850" y="1038" />
-          </GuiSettings>
-          <Properties>
-            <Configuration>
-              <Name>Data</Name>
-              <Abbrev>D</Abbrev>
-            </Configuration>
-            <Annotation DisplayMode="0">
-              <Name />
-              <AnnotationText>**D output**: This output provides the actual data values as well as their predictions.</AnnotationText>
-              <DefaultAnnotationText />
-              <Left value="False" />
-            </Annotation>
-          </Properties>
-          <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxMacroOutput" />
-        </Node>
-        <Node ToolID="144">
-          <GuiSettings Plugin="AlteryxBasePluginsGui.MacroOutput.MacroOutput">
-            <Position x="2910" y="1170" />
-          </GuiSettings>
-          <Properties>
-            <Configuration>
-              <Name>Fit Measures</Name>
-              <Abbrev>F</Abbrev>
-            </Configuration>
-            <Annotation DisplayMode="0">
-              <Name />
-              <AnnotationText>**F output:** This output reports various model fit measures, depending on model type (see the second paragraph for more details on these measures).</AnnotationText>
-              <DefaultAnnotationText />
-              <Left value="False" />
-            </Annotation>
-          </Properties>
-          <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxMacroOutput" />
-        </Node>
-        <Node ToolID="145">
-          <GuiSettings Plugin="AlteryxBasePluginsGui.CrossTab.CrossTab">
-            <Position x="2802" y="1170" />
-          </GuiSettings>
-          <Properties>
-            <Configuration>
-              <GroupFields />
-              <HeaderField field="variable" />
-              <DataField field="value" />
-              <Methods>
-                <Method method="First" />
-              </Methods>
-            </Configuration>
-            <Annotation DisplayMode="0">
-              <Name />
-              <DefaultAnnotationText />
-              <Left value="False" />
-            </Annotation>
-          </Properties>
-          <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxCrossTab" />
-        </Node>
         <Node ToolID="146">
           <GuiSettings Plugin="PortfolioPluginsGui.ComposerText.PortfolioComposerText">
-            <Position x="2946" y="1314" />
+            <Position x="3006" y="1153" />
           </GuiSettings>
           <Properties>
             <Configuration>
@@ -6043,12 +5467,17 @@ if (outer_config$external_cv) {
               <DefaultAnnotationText>Performance Diagnostic Plots w...</DefaultAnnotationText>
               <Left value="False" />
             </Annotation>
+            <MetaInfo connection="Output">
+              <RecordInfo>
+                <Field name="Graph" size="1073741823" source="Report:R-Graph:" type="V_WString" />
+              </RecordInfo>
+            </MetaInfo>
           </Properties>
           <EngineSettings EngineDll="PortfolioPluginsEngine.dll" EngineDllEntryPoint="AlteryxPortfolioComposerTextPlugin" />
         </Node>
         <Node ToolID="147">
           <GuiSettings Plugin="AlteryxBasePluginsGui.Union.Union">
-            <Position x="3102" y="1242" />
+            <Position x="3162" y="1081" />
           </GuiSettings>
           <Properties>
             <Configuration>
@@ -6079,29 +5508,17 @@ if (outer_config$external_cv) {
               <DefaultAnnotationText />
               <Left value="False" />
             </Annotation>
+            <MetaInfo connection="Output">
+              <RecordInfo>
+                <Field name="Graph" size="1073741823" source="Report: (Multiple Sources)" type="V_WString" />
+              </RecordInfo>
+            </MetaInfo>
           </Properties>
           <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxUnion" />
         </Node>
-        <Node ToolID="148">
-          <GuiSettings Plugin="AlteryxBasePluginsGui.MacroOutput.MacroOutput">
-            <Position x="3210" y="1182" />
-          </GuiSettings>
-          <Properties>
-            <Configuration>
-              <Name>Full Cross-Validation Report</Name>
-              <Abbrev>C</Abbrev>
-            </Configuration>
-            <Annotation DisplayMode="0">
-              <Name />
-              <DefaultAnnotationText />
-              <Left value="False" />
-            </Annotation>
-          </Properties>
-          <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxMacroOutput" />
-        </Node>
         <Node ToolID="149">
           <GuiSettings Plugin="AlteryxBasePluginsGui.CrossTab.CrossTab">
-            <Position x="3066" y="1098" />
+            <Position x="3126" y="937" />
           </GuiSettings>
           <Properties>
             <Configuration>
@@ -6117,12 +5534,18 @@ if (outer_config$external_cv) {
               <DefaultAnnotationText />
               <Left value="False" />
             </Annotation>
+            <MetaInfo connection="Output">
+              <RecordInfo>
+              </RecordInfo>
+              <SortInfo>
+              </SortInfo>
+            </MetaInfo>
           </Properties>
           <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxCrossTab" />
         </Node>
         <Node ToolID="150">
           <GuiSettings Plugin="PortfolioPluginsGui.ComposerTable.PortfolioComposerTable">
-            <Position x="3174" y="1098" />
+            <Position x="3234" y="937" />
           </GuiSettings>
           <Properties>
             <Configuration>
@@ -6132,7 +5555,6 @@ if (outer_config$external_cv) {
               <ShowHeader value="True" />
               <ShowBarGraph value="False" />
               <TableFields orderChanged="False">
-                <Field name="Model" selected="True" Alignment="Left" />
                 <Field name="Avg_Accuracy_Class_1" selected="True" Alignment="Right" Places="6" />
                 <Field name="Avg_Accuracy_Class_2" selected="True" Alignment="Right" Places="6" />
                 <Field name="Avg_Accuracy_Overall" selected="True" Alignment="Right" Places="6" />
@@ -6153,12 +5575,19 @@ if (outer_config$external_cv) {
               <DefaultAnnotationText>Basic Table</DefaultAnnotationText>
               <Left value="False" />
             </Annotation>
+            <MetaInfo connection="Output">
+              <RecordInfo>
+                <Field name="Table" size="2147483647" source="Report:Table:Basic:" type="V_String" />
+              </RecordInfo>
+              <SortInfo>
+              </SortInfo>
+            </MetaInfo>
           </Properties>
           <EngineSettings EngineDll="PortfolioPluginsEngine.dll" EngineDllEntryPoint="AlteryxPortfolioComposerTablePlugin" />
         </Node>
         <Node ToolID="151">
           <GuiSettings Plugin="PortfolioPluginsGui.ComposerText.PortfolioComposerText">
-            <Position x="3270" y="1098" />
+            <Position x="3330" y="937" />
           </GuiSettings>
           <Properties>
             <Configuration>
@@ -6183,52 +5612,23 @@ if (outer_config$external_cv) {
               <DefaultAnnotationText>Model fit metrics (average per...</DefaultAnnotationText>
               <Left value="False" />
             </Annotation>
+            <MetaInfo connection="Output">
+              <RecordInfo>
+                <Field name="Table" size="2147483647" source="Report:Table:Basic:" type="V_String" />
+              </RecordInfo>
+              <SortInfo>
+              </SortInfo>
+            </MetaInfo>
           </Properties>
           <EngineSettings EngineDll="PortfolioPluginsEngine.dll" EngineDllEntryPoint="AlteryxPortfolioComposerTextPlugin" />
         </Node>
-        <Node ToolID="154">
-          <GuiSettings Plugin="AlteryxBasePluginsGui.Detour.Detour">
-            <Position x="2682" y="1038" />
-          </GuiSettings>
-          <Properties>
-            <Configuration>
-              <DetourRight value="False" />
-            </Configuration>
-            <Annotation DisplayMode="0">
-              <Name />
-              <DefaultAnnotationText />
-              <Left value="False" />
-            </Annotation>
-            <MetaInfo connection="Left">
-              <RecordInfo>
-                <Field name="RecordID" source="R-DATA:" type="Int32" />
-                <Field name="Trial" source="R-DATA:" type="Int32" />
-                <Field name="Fold" source="R-DATA:" type="Int32" />
-                <Field name="Model" size="1073741823" source="R-DATA:" type="V_WString" />
-                <Field name="Response" source="R-DATA:" type="Double" />
-                <Field name="Actual" source="R-DATA:" type="Double" />
-              </RecordInfo>
-            </MetaInfo>
-            <MetaInfo connection="Right">
-              <RecordInfo>
-                <Field name="RecordID" source="R-DATA:" type="Int32" />
-                <Field name="Trial" source="R-DATA:" type="Int32" />
-                <Field name="Fold" source="R-DATA:" type="Int32" />
-                <Field name="Model" size="1073741823" source="R-DATA:" type="V_WString" />
-                <Field name="Response" source="R-DATA:" type="Double" />
-                <Field name="Actual" source="R-DATA:" type="Double" />
-              </RecordInfo>
-            </MetaInfo>
-          </Properties>
-          <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxDetour" />
-        </Node>
         <Node ToolID="155">
           <GuiSettings Plugin="AlteryxBasePluginsGui.Detour.Detour">
-            <Position x="2682" y="1146" />
+            <Position x="2742" y="985" />
           </GuiSettings>
           <Properties>
             <Configuration>
-              <DetourRight value="False" />
+              <DetourRight value="True" />
             </Configuration>
             <Annotation DisplayMode="0">
               <Name />
@@ -6237,8 +5637,8 @@ if (outer_config$external_cv) {
             </Annotation>
             <MetaInfo connection="Left">
               <RecordInfo>
-                <Field name="trial" source="R-DATA:" type="Int32" />
-                <Field name="fold" source="R-DATA:" type="Int32" />
+                <Field name="trial" source="R-DATA:" type="Double" />
+                <Field name="fold" source="R-DATA:" type="Double" />
                 <Field name="Model" size="1073741823" source="R-DATA:" type="V_WString" />
                 <Field name="variable" size="1073741823" source="R-DATA:" type="V_WString" />
                 <Field name="value" source="R-DATA:" type="Double" />
@@ -6246,8 +5646,8 @@ if (outer_config$external_cv) {
             </MetaInfo>
             <MetaInfo connection="Right">
               <RecordInfo>
-                <Field name="trial" source="R-DATA:" type="Int32" />
-                <Field name="fold" source="R-DATA:" type="Int32" />
+                <Field name="trial" source="R-DATA:" type="Double" />
+                <Field name="fold" source="R-DATA:" type="Double" />
                 <Field name="Model" size="1073741823" source="R-DATA:" type="V_WString" />
                 <Field name="variable" size="1073741823" source="R-DATA:" type="V_WString" />
                 <Field name="value" source="R-DATA:" type="Double" />
@@ -6258,11 +5658,11 @@ if (outer_config$external_cv) {
         </Node>
         <Node ToolID="156">
           <GuiSettings Plugin="AlteryxBasePluginsGui.Detour.Detour">
-            <Position x="2754" y="1278" />
+            <Position x="2814" y="1117" />
           </GuiSettings>
           <Properties>
             <Configuration>
-              <DetourRight value="False" />
+              <DetourRight value="True" />
             </Configuration>
             <Annotation DisplayMode="0">
               <Name />
@@ -6819,7 +6219,7 @@ if (outer_config$external_cv) {
     </Node>
     <Node ToolID="114">
       <GuiSettings Plugin="AlteryxGuiToolkit.ToolContainer.ToolContainer">
-        <Position x="2070" y="222" width="565" height="308" />
+        <Position x="2069" y="222" width="566" height="360.0001" />
       </GuiSettings>
       <Properties>
         <Configuration>
@@ -6934,6 +6334,32 @@ if (outer_config$external_cv) {
             <Configuration />
             <Annotation DisplayMode="0">
               <Name>posClass</Name>
+              <DefaultAnnotationText />
+              <Left value="False" />
+            </Annotation>
+          </Properties>
+        </Node>
+        <Node ToolID="198">
+          <GuiSettings Plugin="AlteryxGuiToolkit.Action.Action">
+            <Position x="2094" y="438.0001" width="59" height="59" />
+          </GuiSettings>
+          <Properties>
+            <Configuration />
+            <Annotation DisplayMode="0">
+              <Name />
+              <DefaultAnnotationText />
+              <Left value="False" />
+            </Annotation>
+          </Properties>
+        </Node>
+        <Node ToolID="199">
+          <GuiSettings Plugin="AlteryxGuiToolkit.Action.Action">
+            <Position x="2094" y="498.0001" width="59" height="59" />
+          </GuiSettings>
+          <Properties>
+            <Configuration />
+            <Annotation DisplayMode="0">
+              <Name />
               <DefaultAnnotationText />
               <Left value="False" />
             </Annotation>
@@ -7812,16 +7238,20 @@ Union</Text>
       <Destination ToolID="141" Connection="Action" />
     </Connection>
     <Connection>
-      <Origin ToolID="127" Connection="Output2" />
-      <Destination ToolID="154" Connection="Input" />
-    </Connection>
-    <Connection>
       <Origin ToolID="127" Connection="Output3" />
       <Destination ToolID="155" Connection="Input" />
+    </Connection>
+    <Connection name="#2" Wireless="True">
+      <Origin ToolID="198" Connection="Action" />
+      <Destination ToolID="155" Connection="Action" />
     </Connection>
     <Connection>
       <Origin ToolID="127" Connection="Output4" />
       <Destination ToolID="156" Connection="Input" />
+    </Connection>
+    <Connection name="#2" Wireless="True">
+      <Origin ToolID="199" Connection="Action" />
+      <Destination ToolID="156" Connection="Action" />
     </Connection>
     <Connection>
       <Origin ToolID="128" Connection="Output" />
@@ -7881,7 +7311,7 @@ Union</Text>
     </Connection>
     <Connection>
       <Origin ToolID="139" Connection="Output" />
-      <Destination ToolID="126" Connection="Input" />
+      <Destination ToolID="203" Connection="Input" />
     </Connection>
     <Connection>
       <Origin ToolID="140" Connection="Right" />
@@ -7899,9 +7329,17 @@ Union</Text>
       <Origin ToolID="187" Connection="Action" />
       <Destination ToolID="176" Connection="Action" />
     </Connection>
+    <Connection name="#1">
+      <Origin ToolID="203" Connection="Output" />
+      <Destination ToolID="205" Connection="Input" />
+    </Connection>
+    <Connection name="#2">
+      <Origin ToolID="204" Connection="Output" />
+      <Destination ToolID="205" Connection="Input" />
+    </Connection>
     <Connection>
-      <Origin ToolID="145" Connection="Output" />
-      <Destination ToolID="144" Connection="Input" />
+      <Origin ToolID="205" Connection="Output" />
+      <Destination ToolID="126" Connection="Input" />
     </Connection>
     <Connection name="#1">
       <Origin ToolID="146" Connection="Output" />
@@ -7913,7 +7351,7 @@ Union</Text>
     </Connection>
     <Connection>
       <Origin ToolID="147" Connection="Output" />
-      <Destination ToolID="148" Connection="Input" />
+      <Destination ToolID="204" Connection="Input" />
     </Connection>
     <Connection>
       <Origin ToolID="149" Connection="Output" />
@@ -7922,14 +7360,6 @@ Union</Text>
     <Connection>
       <Origin ToolID="150" Connection="Output" />
       <Destination ToolID="151" Connection="Input" />
-    </Connection>
-    <Connection>
-      <Origin ToolID="154" Connection="Right" />
-      <Destination ToolID="143" Connection="Input" />
-    </Connection>
-    <Connection>
-      <Origin ToolID="155" Connection="Right" />
-      <Destination ToolID="145" Connection="Input" />
     </Connection>
     <Connection>
       <Origin ToolID="155" Connection="Right" />
@@ -8034,6 +7464,14 @@ Union</Text>
     <Connection name="#2" Wireless="True">
       <Origin ToolID="184" Connection="Action" />
       <Destination ToolID="179" Connection="Action" />
+    </Connection>
+    <Connection name="#1">
+      <Origin ToolID="97" Connection="Question" />
+      <Destination ToolID="198" Connection="Question" />
+    </Connection>
+    <Connection name="#1">
+      <Origin ToolID="97" Connection="Question" />
+      <Destination ToolID="199" Connection="Question" />
     </Connection>
     <Connection name="#1" Wireless="True">
       <Origin ToolID="94" Connection="Question" />
@@ -8140,6 +7578,12 @@ Union</Text>
       <Constant>
         <Namespace>Question</Namespace>
         <Name>Omit Constant</Name>
+        <Value />
+        <IsNumeric value="False" />
+      </Constant>
+      <Constant>
+        <Namespace>Question</Namespace>
+        <Name>posClass</Name>
         <Value />
         <IsNumeric value="False" />
       </Constant>
@@ -8284,18 +7728,12 @@ Union</Text>
       <Constant>
         <Namespace>Question</Namespace>
         <Name>regularization</Name>
-        <Value />
+        <Value>True</Value>
         <IsNumeric value="False" />
       </Constant>
       <Constant>
         <Namespace>Question</Namespace>
         <Name>display_graphs</Name>
-        <Value />
-        <IsNumeric value="False" />
-      </Constant>
-      <Constant>
-        <Namespace>Question</Namespace>
-        <Name>posClass</Name>
         <Value />
         <IsNumeric value="False" />
       </Constant>
@@ -8538,6 +7976,28 @@ Union</Text>
               <DynamicConfiguration />
               <DefaultConfiguration value="True" />
             </Action>
+            <Action>
+              <Type>Dynamic</Type>
+              <Description />
+              <ToolId value="198" />
+              <Expression>{{INPUT}}</Expression>
+              <Destination>155/DetourRight/@value</Destination>
+              <Mapping>Update Detour Direction from Question</Mapping>
+              <Mode>Expression</Mode>
+              <DynamicConfiguration />
+              <DefaultConfiguration value="True" />
+            </Action>
+            <Action>
+              <Type>Dynamic</Type>
+              <Description />
+              <ToolId value="199" />
+              <Expression>{{INPUT}}</Expression>
+              <Destination>156/DetourRight/@value</Destination>
+              <Mapping>Update Detour Direction from Question</Mapping>
+              <Mode>Expression</Mode>
+              <DynamicConfiguration />
+              <DefaultConfiguration value="True" />
+            </Action>
           </True>
         </NoCondition>
         <Condition>
@@ -8582,24 +8042,6 @@ Union</Text>
               <Description>Reports</Description>
               <Name>Macro Output (126)</Name>
               <ToolId value="126" />
-            </Question>
-            <Question>
-              <Type>MacroOutput</Type>
-              <Description>Macro Output (5)</Description>
-              <Name>Macro Output (143)</Name>
-              <ToolId value="143" />
-            </Question>
-            <Question>
-              <Type>MacroOutput</Type>
-              <Description>Macro Output (48)</Description>
-              <Name>Macro Output (144)</Name>
-              <ToolId value="144" />
-            </Question>
-            <Question>
-              <Type>MacroOutput</Type>
-              <Description>Macro Output (89)</Description>
-              <Name>Macro Output (148)</Name>
-              <ToolId value="148" />
             </Question>
             <Question>
               <Type>TextBox</Type>
@@ -8948,9 +8390,6 @@ complementary log-log
         <Tool ToolId="116" Selected="True" />
         <Tool ToolId="125" Selected="True" />
         <Tool ToolId="126" Selected="True" />
-        <Tool ToolId="143" Selected="True" />
-        <Tool ToolId="144" Selected="True" />
-        <Tool ToolId="148" Selected="True" />
       </Wiz_OpenOutputTools>
       <Wiz_OutputMessage />
       <Wiz_NoOutputFilesMessage />
