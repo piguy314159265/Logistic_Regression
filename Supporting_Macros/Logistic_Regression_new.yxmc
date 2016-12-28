@@ -290,26 +290,28 @@ Logistic Regression</Text>
       </GuiSettings>
       <Properties>
         <Configuration>
-          <RScript><![CDATA[config <- list(
+          <RScript><![CDATA[library(AlteryxPredictive)
+
+config <- list(
   `graph.resolution` = dropdownInput('%Question.graph.resolution%' , '1x'),
   `Link` = dropdownInput('%Question.Link%' , 'logit'),
   `Model Name` = textInput('%Question.Model Name%'),
   `Use Weights` = checkboxInput('%Question.Use Weights%' , FALSE),
   `Weight Vec` = dropdownInput('%Question.Weight Vec%'),
-  `X Vars` = listInput('%Question.X Vars%', c('Sepal.Length', 'Petal.Length')),
-  `Y Var` = dropdownInput('%Question.Y Var%', 'Species'),
+  `X Vars` = listInput('%Question.X Vars%', c('gre', 'gpa', 'rank')),
+  `Y Var` = dropdownInput('%Question.Y Var%', 'admit'),
   regularization = checkboxInput('%Question.regularization%', FALSE),
   alpha = numericInput('%Question.alpha%', .5),
   lambda_1se = radioInput('%Question.lambda.1se%', TRUE),
   lambda_min = radioInput('%Question.lambda.min%', FALSE),
   standardize_pred = checkboxInput('%Question.standardize_pred%', TRUE),
   internal_cv = checkboxInput('%Question.internal_cv%', TRUE),
-  set_seed_internal_cv = checkboxInput('%Question.set_seed_internal_cvv%', TRUE),
+  set_seed_internal_cv = checkboxInput('%Question.set_seed_internal_cv%', TRUE),
   seed_internal_cv = numericInput('%Question.seed_internal_cv%', 1),
   nfolds = numericInput('%Question.nfolds%', 5),
   lambda_no_cv = numericInput('%Question.lambda_no_cv%', NULL),
   display_graphs = checkboxInput('%Question.display_graphs%', TRUE),
-  external_cv = checkboxInput('%Question.external_cv%', FALSE),
+  external_cv = checkboxInput('%Question.external_cv%', TRUE),
   nfolds_external = numericInput('%Question.nfolds_external%', NULL),
   set_seed_external_cv = checkboxInput('%Question.set_seed_external_cv%', FALSE),
   external_seed_value = numericInput('%Question.external_seed_value%', NULL),
@@ -324,7 +326,7 @@ options(alteryx.debug = config$debug)
 #' This is a named list of all inputs that stream into the R tool.
 #' We also specify defaults for use when R code is run outside Alteryx.
 inputs <- list(
-  the.data = read.Alteryx2("#1", default = mtcars),
+  the.data = read.Alteryx2("#1", default = admission),
   XDFInfo = getXdfProperties("#1", default = list(is_XDF = FALSE, xdf_path = NULL))
 )
 
@@ -339,23 +341,6 @@ http://downloads.alteryx.com/Latest_RInstaller.htm</AnnotationText>
           <DefaultAnnotationText />
           <Left value="False" />
         </Annotation>
-        <MetaInfo connection="Output1">
-          <RecordInfo>
-            <Field name="grp" size="1073741823" source="R-DATA:" type="V_WString" />
-            <Field name="out" size="1073741823" source="R-DATA:" type="V_WString" />
-          </RecordInfo>
-        </MetaInfo>
-        <MetaInfo connection="Output2">
-          <RecordInfo>
-            <Field name="Graph" size="1073741823" source="Report:R-Graph:" type="V_WString" />
-          </RecordInfo>
-        </MetaInfo>
-        <MetaInfo connection="Output3">
-          <RecordInfo>
-            <Field name="Name" size="1073741823" source="R-DATA:" type="V_WString" />
-            <Field name="Object" size="2147483647" source="R-DATA:SERIAL" type="Blob" />
-          </RecordInfo>
-        </MetaInfo>
       </Properties>
       <EngineSettings EngineDll="AlteryxConnectorEngine.dll" EngineDllEntryPoint="AlteryxR" />
     </Node>
@@ -6976,7 +6961,7 @@ if (outer_config$external_cv) {
       <ChildNodes>
         <Node ToolID="94">
           <GuiSettings Plugin="AlteryxGuiToolkit.Questions.CheckBoxGroup.CheckBoxGroup">
-            <Position x="1338" y="234" width="59" height="59" />
+            <Position x="1338" y="234.0001" width="59" height="59" />
           </GuiSettings>
           <Properties>
             <Configuration />

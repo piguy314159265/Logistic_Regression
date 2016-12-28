@@ -1,6 +1,6 @@
-suppressWarnings(library(AlteryxPredictive))
+library(AlteryxPredictive)
 
-outer_config <- list(
+config <- list(
   `graph.resolution` = dropdownInput('%Question.graph.resolution%' , '1x'),
   `Link` = dropdownInput('%Question.Link%' , 'logit'),
   `Model Name` = textInput('%Question.Model Name%'),
@@ -26,52 +26,16 @@ outer_config <- list(
   `Omit Constant` = checkboxInput('%Question.Omit Constant%' , FALSE)
 )
 
-
-
-config <- list(
-  `classification` = TRUE,
-  `modelType` = NULL,
-  `numberFolds` = numericInput('%Question.nfolds_external%' , 5),
-  `numberTrials` = numericInput('%Question.numberTrials%' , 3),
-  `posClass` = NULL,
-  `regression` = FALSE,
-  `stratified` = FALSE,
-  `seed` = numericInput('%Question.seed%', 1)
-)
-
-config <- append(config, outer_config)
-
 options(alteryx.wd = '%Engine.WorkflowDirectory%')
-options(alteryx.debug = outer_config)
-
+options(alteryx.debug = config$debug)
+##----
+#' ### Read Inputs
+#'
+#' This is a named list of all inputs that stream into the R tool.
+#' We also specify defaults for use when R code is run outside Alteryx.
 inputs <- list(
-  data = read.Alteryx("#2"),
-  models = list(model = unserializeObject((read.Alteryx("#1")$Object)[[1]]))
+  the.data = read.Alteryx2("#1", default = admission),
+  XDFInfo = getXdfProperties("#1", default = list(is_XDF = FALSE, xdf_path = NULL))
 )
 
-if (!(outer_config$regularization)) {
-  mod.df <- read.Alteryx("#1")
-  mod.obj <- unserializeObject(as.character(mod.df$Object[1]))
-  the.class <- class(mod.obj)[1]
-  write.Alteryx(data.frame(Class = the.class))
-}
-
-if (outer_config$external_cv) {
-  if (is.null(getOption("testscript"))){
-    inputs$models <- readModelObjects("#1", default = defaults$models)
-    saveRDS(inputs, "C:\\Users\\dblanchard\\Documents\\playground\\inputs.rds")
-    saveRDS(config, "C:\\Users\\dblanchard\\Documents\\playground\\config.rds")
-    AlteryxPredictive::runCrossValidationLinReg(inputs, config)
-  }
-}
-
-# dashboard <- AlteryxPredictive:::interactive_lm_report(
-#   config = outer_config,
-#   data = inputs$data,
-#   model = inputs$models[[1]]
-# )
-# 
-# flightdeck:::fdRender(
-#   x = dashboard, 
-#   nOutput = 5
-# )
+AlteryxPredictive:::runLogisticRegression(inputs, config)
