@@ -59,8 +59,8 @@ if (!(outer_config$regularization)) {
 if (outer_config$external_cv) {
   if (is.null(getOption("testscript"))){
     inputs$models <- readModelObjects("#1", default = defaults$models)
-    saveRDS(inputs, "C:\\Users\\dblanchard\\Documents\\playground\\inputs.rds")
-    saveRDS(config, "C:\\Users\\dblanchard\\Documents\\playground\\config.rds")
+    # saveRDS(inputs, "C:\\Users\\dblanchard\\Documents\\playground\\inputs.rds")
+    # saveRDS(config, "C:\\Users\\dblanchard\\Documents\\playground\\config.rds")
     AlteryxPredictive::runCrossValidationLinReg(inputs, config)
   }
 }
